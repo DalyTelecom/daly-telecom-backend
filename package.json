@@ -1,7 +1,7 @@
 {
   "name": "daly-telecom-backend",
   "version": "1.0.0",
-  "description": "Daly Telecom",
+  "description": "Daly Telecom Backend",
   "author": "Andrey Sakharov <caxap_8787@mail.ru> (https://www.linkedin.com/in/andrey-sakharov/)",
   "license": "MIT",
   "main": "dist/main.js",
@@ -16,12 +16,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/muturgan/daly-telecom.git"
+    "url": "git+https://github.com/DalyTelecom/daly-telecom-backend.git"
   },
   "bugs": {
-    "url": "https://github.com/muturgan/daly-telecom/issues"
+    "url": "https://github.com/DalyTelecom/daly-telecom-backend/issues"
   },
-  "homepage": "https://github.com/muturgan/daly-telecom#readme",
+  "homepage": "https://github.com/DalyTelecom/daly-telecom-backend#readme",
   "dependencies": {
     "@nestjs/common": "^8.2.6",
     "@nestjs/core": "^8.2.6",
