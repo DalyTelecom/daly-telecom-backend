@@ -1,27 +1,9 @@
-import { Headers, Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
 import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiBasicAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
-import { encode } from '@msgpack/msgpack';
-import { MessagePack } from 'msgpack5';
-const msgpack: MessagePack = require('msgpack5')();
-import { Duplex } from 'stream';
-import { gzipSync } from 'zlib';
-
-export type TCompressLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
-export interface IZstd {
-   compress(data: Buffer | Uint8Array, compressLevel?: TCompressLevel): Uint8Array;
-   decompress(compressed: Uint8Array): Uint8Array;
-}
-
-export const ZSTD = new Promise<IZstd>((resolve) => {
-   const { ZstdCodec } = require('zstd-codec');
-   ZstdCodec.run((zstd: any) => {
-      resolve(new zstd.Simple());
-   });
-});
 
 
 @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true, forbidUnknownValues: true, transform: true}))
@@ -51,43 +33,13 @@ export class TelecomControllerV2
    @ApiBasicAuth()
    @ApiOperation({summary: 'Получение списка абонентов'})
    @ApiOkResponse({type: AbonentList})
-   public async getAbonentsList(@Query() query: PaginationQuery, @Headers('x-compress') xcompress?: string): Promise<AbonentList | Buffer | Duplex>
+   public async getAbonentsList(@Query() query: PaginationQuery): Promise<AbonentList>
    {
       const skip = query.pageSize * (query.pageNumber - 1);
       const take = query.pageSize;
       const [abonents, total] = await this._abonentRepository.findAndCount({skip, take});
       const data = { abonents, total, ...query };
-
-      const zstd = await ZSTD;
-      const compress = xcompress?.toLowerCase();
-      switch (compress) {
-         case 'collina':
-            return msgpack.encode(data);
-
-         case 'collina+gzip':
-            return gzipSync(msgpack.encode(data) as any, {level: 9});
-
-         case 'collina+zstd':
-            return Buffer.from(zstd.compress(msgpack.encode(data) as any, 19));
-
-         case 'msgpack':
-            return Buffer.from(encode(data));
-
-         case 'msgpack+gzip':
-            return gzipSync(encode(data), {level: 9});
-
-         case 'msgpack+zstd':
-            return Buffer.from(zstd.compress(encode(data), 19));
-
-         case 'gzip':
-            return gzipSync(JSON.stringify(data), {level: 9});
-
-         case 'zstd':
-            return Buffer.from(zstd.compress(Buffer.from(JSON.stringify(data)), 19));
-
-         default:
-            return data;
-      }
+      return data;
    }
 
    @Get('abonents/:abonentId')
