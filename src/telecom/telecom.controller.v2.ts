@@ -51,7 +51,7 @@ export class TelecomControllerV2
    @ApiBasicAuth()
    @ApiOperation({summary: 'Получение списка абонентов'})
    @ApiOkResponse({type: AbonentList})
-   public async getAbonentsList(@Query() query: PaginationQuery, @Headers('x-compress') xcompress?: string): Promise<AbonentList | Buffer | Duplex | Uint8Array>
+   public async getAbonentsList(@Query() query: PaginationQuery, @Headers('x-compress') xcompress?: string): Promise<AbonentList | Buffer | Duplex>
    {
       const skip = query.pageSize * (query.pageNumber - 1);
       const take = query.pageSize;
@@ -68,22 +68,22 @@ export class TelecomControllerV2
             return gzipSync(msgpack.encode(data) as any, {level: 9});
 
          case 'collina+zstd':
-            return zstd.compress(msgpack.encode(data) as any, 19);
+            return Buffer.from(zstd.compress(msgpack.encode(data) as any, 19));
 
          case 'msgpack':
-            return encode(data);
+            return Buffer.from(encode(data));
 
          case 'msgpack+gzip':
             return gzipSync(encode(data), {level: 9});
 
          case 'msgpack+zstd':
-            return zstd.compress(encode(data), 19);
+            return Buffer.from(zstd.compress(encode(data), 19));
 
          case 'gzip':
             return gzipSync(JSON.stringify(data), {level: 9});
 
          case 'zstd':
-            return zstd.compress(Buffer.from(JSON.stringify(data)), 19);
+            return Buffer.from(zstd.compress(Buffer.from(JSON.stringify(data)), 19));
 
          default:
             return data;
