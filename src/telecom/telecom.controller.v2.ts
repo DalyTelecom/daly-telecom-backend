@@ -1,9 +1,13 @@
-import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
+import { Headers, Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
 import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiBasicAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
+import cbor = require('cbor');
+import { MessagePack } from 'msgpack5';
+const msgpack: MessagePack = require('msgpack5')();
+import { Duplex } from 'stream';
 
 
 @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true, forbidUnknownValues: true, transform: true}))
@@ -33,12 +37,22 @@ export class TelecomControllerV2
    @ApiBasicAuth()
    @ApiOperation({summary: 'Получение списка абонентов'})
    @ApiOkResponse({type: AbonentList})
-   public async getAbonentsList(@Query() query: PaginationQuery): Promise<AbonentList>
+   public async getAbonentsList(@Query() query: PaginationQuery, @Headers('x-compress') xcompress?: string): Promise<AbonentList | Buffer | Duplex>
    {
       const skip = query.pageSize * (query.pageNumber - 1);
       const take = query.pageSize;
       const [abonents, total] = await this._abonentRepository.findAndCount({skip, take});
-      return { abonents, total, ...query };
+      const data = { abonents, total, ...query };
+
+      const compress = xcompress?.toLowerCase();
+      if (compress === 'cbor') {
+         return cbor.encode(data);
+      }
+      if (compress === 'msgpack') {
+         return msgpack.encode(data);
+      }
+
+      return data;
    }
 
    @Get('abonents/:abonentId')

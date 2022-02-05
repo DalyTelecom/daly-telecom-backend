@@ -32,15 +32,18 @@
     "@nestjs/platform-fastify": "^8.2.6",
     "@nestjs/swagger": "^5.2.0",
     "@nestjs/typeorm": "^8.0.3",
+    "cbor": "^8.1.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.2",
     "fastify-swagger": "^4.13.1",
+    "msgpack5": "^5.3.2",
     "mysql2": "^2.3.3",
     "rxjs": "^7.5.2",
     "tslib": "^2.3.1",
     "typeorm": "^0.2.41"
   },
   "devDependencies": {
+    "@types/msgpack5": "^3.4.2",
     "@types/node": "^14.18.10",
     "@types/validator": "^13.7.1",
     "husky": "^7.0.4",
