@@ -55,7 +55,7 @@ export class AbonentBodyDto
    @IsString({each: true})
    @IsArray()
    @IsOptional()
-   public readonly boxes?: string[] | null;
+   public readonly boxes: string[] = [];
 
    @ApiPropertyOptional({type: Number, format: 'double', example: 37.586452})
    @IsNumber()

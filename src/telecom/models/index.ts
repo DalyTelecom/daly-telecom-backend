@@ -1,3 +1,5 @@
+export * from './flat';
+
 export * from './abonent.entity';
 export * from './engineer.entity';
 export * from './success.response';

@@ -76,7 +76,7 @@ export class AbonentEntity {
 
    @ApiPropertyOptional({type: [String]})
    @Column({type: 'text', transformer: boxesTransformer, nullable: true, default: null})
-   public readonly boxes?: string[] | null;
+   public readonly boxes!: ReadonlyArray<string>;
 
    @ApiPropertyOptional({type: Number, format: 'double', example: 37.586452})
    @Column({type: 'double', nullable: true, default: null})
