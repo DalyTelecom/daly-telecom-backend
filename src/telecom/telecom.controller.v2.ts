@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
-import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery } from './models';
+import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiBasicAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
 
@@ -61,6 +61,39 @@ export class TelecomControllerV2
       }
 
       return abonent;
+   }
+
+   @Get('flat-abonents')
+   @UseGuards(BasicAuthGuard)
+   @ApiBasicAuth()
+   @ApiOperation({summary: 'Получение списка абонентов (компактное представление)'})
+   @ApiOkResponse(FlatAbonentListResponseSchema)
+   public async getFlatAbonentsList(@Query() {pageNumber, pageSize}: PaginationQuery): Promise<FlatAbonentList>
+   {
+      const skip = pageSize * (pageNumber - 1);
+      const [abonents, total] = await this._abonentRepository.findAndCount({skip, take: pageSize});
+      return new FlatAbonentList(abonents, total, pageNumber, pageSize);
+   }
+
+   @Get('flat-abonents/:abonentId')
+   @UseGuards(BasicAuthGuard)
+   @ApiBasicAuth()
+   @ApiParam({name: 'abonentId', type: 'integer'})
+   @ApiOperation({summary: 'Получение данных абонента по идентификатору (компактное представление)'})
+   @ApiOkResponse(FlatAbonentResponseSchema)
+   public async getFlatAbonent(@Param('abonentId') abonentId: string): Promise<FlatAbonent>
+   {
+      const abonentIdNum = Number(abonentId);
+      if (!abonentIdNum) {
+         throw new NotFoundException();
+      }
+
+      const abonent = await this._abonentRepository.findOne({ where: {id: abonentIdNum}});
+      if (abonent === undefined) {
+         throw new NotFoundException();
+      }
+
+      return new FlatAbonent(abonent);
    }
 
    @Post('abonents')
