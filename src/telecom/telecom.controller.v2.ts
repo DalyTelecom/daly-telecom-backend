@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { DeepPartial, FindManyOptions, FindOperator, Like, Repository } from 'typeorm';
 import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiBasicAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
@@ -33,12 +33,11 @@ export class TelecomControllerV2
    @ApiBasicAuth()
    @ApiOperation({summary: 'Получение списка абонентов'})
    @ApiOkResponse({type: AbonentList})
-   public async getAbonentsList(@Query() {pageSize, pageNumber}: PaginationQuery): Promise<AbonentList>
+   public async getAbonentsList(@Query() query: PaginationQuery): Promise<AbonentList>
    {
-      const skip = pageSize * (pageNumber - 1);
-      const take = pageSize;
-      const [abonents, total] = await this._abonentRepository.findAndCount({skip, take});
-      const data = { abonents, total, pageSize, pageNumber };
+      const condition = this._generatFindCondition(query);
+      const [abonents, total] = await this._abonentRepository.findAndCount(condition);
+      const data = { abonents, total, pageSize: query.pageSize, pageNumber: query.pageNumber };
       return data;
    }
 
@@ -147,5 +146,28 @@ export class TelecomControllerV2
       }
 
       return {success: true};
+   }
+
+
+   private _generatFindCondition({pageSize, pageNumber, name, phone, address}: PaginationQuery): FindManyOptions<AbonentEntity>
+   {
+      const where: {name?: FindOperator<string>, phone?: FindOperator<string>, address?: FindOperator<string>} = {};
+      if (name) {
+         where.name = Like(`%${name}%`);
+      }
+      if (phone) {
+         where.phone = Like(`%${phone}%`);
+      }
+      if (address) {
+         where.address = Like(`%${address}%`);
+      }
+
+      const condition: FindManyOptions<AbonentEntity> = {
+         where,
+         skip: pageSize * (pageNumber - 1),
+         take: pageSize,
+      };
+
+      return condition;
    }
 }

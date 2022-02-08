@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsPositive } from 'class-validator';
+import { IsInt, IsOptional, IsPositive, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -24,4 +24,19 @@ export class PaginationQuery
    })
    @IsOptional()
    public readonly pageSize = DEFAULT_PAGE_SIZE;
+
+   @ApiPropertyOptional({type: String})
+   @IsString()
+   @IsOptional()
+   public readonly name: string = '';
+
+   @ApiPropertyOptional({type: String})
+   @IsString()
+   @IsOptional()
+   public readonly phone: string = '';
+
+   @ApiPropertyOptional({type: String})
+   @IsString()
+   @IsOptional()
+   public readonly address: string = '';
 }
