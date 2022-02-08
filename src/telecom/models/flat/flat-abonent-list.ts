@@ -1,4 +1,4 @@
-import { AbonentEntity } from '../abonent.entity';
+import { AbonentList } from '../abonentlist.response';
 import { FlatAbonent } from './flat-abonent';
 
 export type TFlatAbonentList = Readonly<[
@@ -21,8 +21,8 @@ export class FlatAbonentList extends FlatAbonentListConstructor {
    // @ts-ignore
    private readonly [SECRET_SYMBOL]: unknown;
 
-   constructor(list: AbonentEntity[], total: number, pageNumber: number, pageSize: number) {
-      const flatList = list.map((a) => new FlatAbonent(a));
-      super(flatList, total, pageNumber, pageSize);
+   constructor(list: AbonentList) {
+      const flatList = list.abonents.map((a) => new FlatAbonent(a));
+      super(flatList, list.total, list.pageNumber, list.pageSize);
    }
 }

@@ -33,12 +33,12 @@ export class TelecomControllerV2
    @ApiBasicAuth()
    @ApiOperation({summary: 'Получение списка абонентов'})
    @ApiOkResponse({type: AbonentList})
-   public async getAbonentsList(@Query() query: PaginationQuery): Promise<AbonentList>
+   public async getAbonentsList(@Query() {pageSize, pageNumber}: PaginationQuery): Promise<AbonentList>
    {
-      const skip = query.pageSize * (query.pageNumber - 1);
-      const take = query.pageSize;
+      const skip = pageSize * (pageNumber - 1);
+      const take = pageSize;
       const [abonents, total] = await this._abonentRepository.findAndCount({skip, take});
-      const data = { abonents, total, ...query };
+      const data = { abonents, total, pageSize, pageNumber };
       return data;
    }
 
@@ -68,11 +68,10 @@ export class TelecomControllerV2
    @ApiBasicAuth()
    @ApiOperation({summary: 'Получение списка абонентов (компактное представление)'})
    @ApiOkResponse(FlatAbonentListResponseSchema)
-   public async getFlatAbonentsList(@Query() {pageNumber, pageSize}: PaginationQuery): Promise<FlatAbonentList>
+   public async getFlatAbonentsList(@Query() query: PaginationQuery): Promise<FlatAbonentList>
    {
-      const skip = pageSize * (pageNumber - 1);
-      const [abonents, total] = await this._abonentRepository.findAndCount({skip, take: pageSize});
-      return new FlatAbonentList(abonents, total, pageNumber, pageSize);
+      const list = await this.getAbonentsList(query);
+      return new FlatAbonentList(list);
    }
 
    @Get('flat-abonents/:abonentId')
@@ -83,16 +82,7 @@ export class TelecomControllerV2
    @ApiOkResponse(FlatAbonentResponseSchema)
    public async getFlatAbonent(@Param('abonentId') abonentId: string): Promise<FlatAbonent>
    {
-      const abonentIdNum = Number(abonentId);
-      if (!abonentIdNum) {
-         throw new NotFoundException();
-      }
-
-      const abonent = await this._abonentRepository.findOne({ where: {id: abonentIdNum}});
-      if (abonent === undefined) {
-         throw new NotFoundException();
-      }
-
+      const abonent = await this.getAbonent(abonentId);
       return new FlatAbonent(abonent);
    }
 

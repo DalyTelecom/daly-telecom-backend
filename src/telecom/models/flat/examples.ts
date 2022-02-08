@@ -21,6 +21,6 @@ const FlatAbonentExample = new FlatAbonent(DummyAbonent);
 
 export const FlatAbonentResponseSchema: ApiResponseOptions = {schema: {example: FlatAbonentExample}};
 
-const FlatAbonentListExample = new FlatAbonentList([DummyAbonent], 100500, 1, 1);
+const FlatAbonentListExample = new FlatAbonentList({abonents: [DummyAbonent], total: 100500, pageSize: 1, pageNumber: 1});
 
 export const FlatAbonentListResponseSchema: ApiResponseOptions = {schema: {example: FlatAbonentListExample}};
