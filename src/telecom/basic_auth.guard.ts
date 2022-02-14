@@ -4,6 +4,7 @@ import type { FastifyRequest } from 'fastify';
 import { Repository } from 'typeorm';
 import { EngineerEntity } from './models';
 import argon2 = require('argon2');
+import crypto = require('crypto');
 
 export const AUTH_HEADER = 'authorization';
 const BASIC_AUTH_PREFIX = 'Basic';
@@ -30,17 +31,19 @@ export class BasicAuthGuard implements CanActivate
       try {
          const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
          if (engineer === undefined) {
-            throw new UnauthorizedException('Неверный логин и/или пароль');
+            throw new Error();
          }
 
          const isVerified = await argon2.verify(engineer.phash, password, {salt: Buffer.from(engineer.salt)});
          if (isVerified !== true) {
-            throw new UnauthorizedException('Неверный логин и/или пароль');
+            throw new Error();
          }
 
+         await this.sleep();
          return true;
 
       } catch {
+         await this.sleep();
          throw new UnauthorizedException('Неверный логин и/или пароль');
       }
    }
@@ -71,5 +74,10 @@ export class BasicAuthGuard implements CanActivate
 
    protected generateBasicAuthHeader(login: string, password: string): string {
       return 'Basic ' + Buffer.from(login + ':' + password).toString('base64');
+   }
+
+   private async sleep(): Promise<void> {
+      const sleepPeriod = crypto.randomInt(1000, 1500);
+      return new Promise((r) => setTimeout(r, sleepPeriod));
    }
 }
