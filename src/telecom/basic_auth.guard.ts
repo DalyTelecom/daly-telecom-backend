@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { FastifyRequest } from 'fastify';
 import { Repository } from 'typeorm';
 import { EngineerEntity } from './models';
+import argon2 = require('argon2');
 
 export const AUTH_HEADER = 'authorization';
 const BASIC_AUTH_PREFIX = 'Basic';
@@ -26,12 +27,22 @@ export class BasicAuthGuard implements CanActivate
 
    public async checkEngineerAuthorization(login: string, password: string): Promise<boolean>
    {
-      const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
-      if (engineer?.phone !== password) {
+      try {
+         const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
+         if (engineer === undefined) {
+            throw new UnauthorizedException('Неверный логин и/или пароль');
+         }
+
+         const isVerified = await argon2.verify(engineer.phash, password, {salt: Buffer.from(engineer.salt)});
+         if (isVerified !== true) {
+            throw new UnauthorizedException('Неверный логин и/или пароль');
+         }
+
+         return true;
+
+      } catch {
          throw new UnauthorizedException('Неверный логин и/или пароль');
       }
-
-      return true;
    }
 
    private parseAuthHeader(authHeader: string | unknown): {login: string, password: string}

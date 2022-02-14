@@ -12,6 +12,9 @@ export class EngineerEntity {
    @Column({type: 'varchar', length: 16, unique: true, nullable: false})
    public readonly login!: string;
 
-   @Column({type: 'char', length: 11, unique: true, nullable: false})
-   public readonly phone!: string;
+   @Column({type: 'text', nullable: false})
+   public readonly phash!: string;
+
+   @Column({type: 'char', length: 32, nullable: false})
+   public readonly salt!: string;
 }
