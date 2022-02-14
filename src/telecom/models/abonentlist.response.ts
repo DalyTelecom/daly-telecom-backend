@@ -10,6 +10,9 @@ export class AbonentList
    public readonly total!: number;
 
    @ApiProperty({type: 'integer'})
+   public readonly totalPages!: number;
+
+   @ApiProperty({type: 'integer'})
    public readonly pageNumber!: number;
 
    @ApiProperty({type: 'integer'})

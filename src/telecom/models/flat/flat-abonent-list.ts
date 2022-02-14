@@ -6,6 +6,7 @@ export type TFlatAbonentList = Readonly<[
    total: number,
    pageNumber: number,
    pageSize: number,
+   totalPages: number,
 ]>;
 
 declare const SECRET_SYMBOL: unique symbol;
@@ -15,6 +16,7 @@ const FlatAbonentListConstructor: new (
    total: number,
    pageNumber: number,
    pageSize: number,
+   totalPages: number,
 ) => TFlatAbonentList = Array as any;
 
 export class FlatAbonentList extends FlatAbonentListConstructor {
@@ -23,6 +25,6 @@ export class FlatAbonentList extends FlatAbonentListConstructor {
 
    constructor(list: AbonentList) {
       const flatList = list.abonents.map((a) => new FlatAbonent(a));
-      super(flatList, list.total, list.pageNumber, list.pageSize);
+      super(flatList, list.total, list.pageNumber, list.pageSize, list.totalPages);
    }
 }

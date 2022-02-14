@@ -37,7 +37,8 @@ export class TelecomControllerV2
    {
       const condition = this._generatFindCondition(query);
       const [abonents, total] = await this._abonentRepository.findAndCount(condition);
-      const data = { abonents, total, pageSize: query.pageSize, pageNumber: query.pageNumber };
+      const totalPages = Math.ceil(total / query.pageSize);
+      const data = { abonents, total, totalPages, pageSize: query.pageSize, pageNumber: query.pageNumber };
       return data;
    }
 
