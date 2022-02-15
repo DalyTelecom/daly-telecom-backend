@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, FindManyOptions, FindOperator, Like, Repository } from 'typeorm';
-import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema } from './models';
+import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema, LightAbonentList, FlatLightAbonentList } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiBasicAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
 
@@ -61,6 +61,34 @@ export class TelecomControllerV2
       }
 
       return abonent;
+   }
+
+   @Get('light-abonents')
+   @UseGuards(BasicAuthGuard)
+   @ApiBasicAuth()
+   @ApiOperation({summary: 'Получение списка абонентов (сокращённая информация для отображения списка)'})
+   @ApiOkResponse({type: AbonentList})
+   public async getLightAbonentsList(@Query() query: PaginationQuery): Promise<LightAbonentList>
+   {
+      const condition = this._generatFindCondition(query);
+      const [abonents, total] = await this._abonentRepository.findAndCount({
+         ...condition,
+         select: ['id', 'name', 'phone', 'address'],
+      });
+      const totalPages = Math.ceil(total / query.pageSize);
+      const data = { abonents, total, totalPages, pageSize: query.pageSize, pageNumber: query.pageNumber };
+      return data;
+   }
+
+   @Get('light-flat-abonents')
+   @UseGuards(BasicAuthGuard)
+   @ApiBasicAuth()
+   @ApiOperation({summary: 'Получение списка абонентов (сокращённая информация для отображения списка; компактное представление)'})
+   @ApiOkResponse(FlatAbonentListResponseSchema)
+   public async getLightFlatAbonentsList(@Query() query: PaginationQuery): Promise<FlatLightAbonentList>
+   {
+      const list = await this.getLightAbonentsList(query);
+      return new FlatLightAbonentList(list);
    }
 
    @Get('flat-abonents')

@@ -1,5 +1,5 @@
 import { ApiResponseOptions } from '@nestjs/swagger';
-import { FlatAbonent, FlatAbonentList } from '.';
+import { FlatAbonent, FlatAbonentList, FlatLightAbonentList } from './index';
 import { AbonentEntity } from '../abonent.entity';
 
 const DummyAbonent: AbonentEntity = {
@@ -24,3 +24,5 @@ export const FlatAbonentResponseSchema: ApiResponseOptions = {schema: {example: 
 const FlatAbonentListExample = new FlatAbonentList({abonents: [DummyAbonent, DummyAbonent], total: 7, totalPages: 4, pageSize: 2, pageNumber: 1});
 
 export const FlatAbonentListResponseSchema: ApiResponseOptions = {schema: {example: FlatAbonentListExample}};
+
+export const FlatLightAbonentListExample = new FlatLightAbonentList({abonents: [DummyAbonent, DummyAbonent], total: 7, totalPages: 4, pageSize: 2, pageNumber: 1});
