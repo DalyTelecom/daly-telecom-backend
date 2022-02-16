@@ -30,6 +30,17 @@ export class TelecomControllerV2
    }
 
 
+   @Get('check-auth')
+   @UseGuards(BasicAuthGuard)
+   @ApiBasicAuth()
+   @ApiOperation({summary: 'Проверка авторизации'})
+   @ApiOkResponse({type: Success})
+   public checkAuth(): Success
+   {
+      return {success: true};
+   }
+
+
    @Get('abonents')
    @UseGuards(BasicAuthGuard)
    @ApiBasicAuth()
