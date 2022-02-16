@@ -28,6 +28,8 @@ export class BasicAuthGuard implements CanActivate
 
    public async checkEngineerAuthorization(login: string, password: string): Promise<boolean>
    {
+      await this.sleep();
+
       try {
          const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
          if (engineer === undefined) {
@@ -39,11 +41,9 @@ export class BasicAuthGuard implements CanActivate
             throw new Error();
          }
 
-         await this.sleep();
          return true;
 
       } catch {
-         await this.sleep();
          throw new UnauthorizedException('Неверный логин и/или пароль');
       }
    }
