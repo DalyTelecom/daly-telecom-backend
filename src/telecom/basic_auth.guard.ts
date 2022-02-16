@@ -3,30 +3,123 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { FastifyRequest } from 'fastify';
 import { Repository } from 'typeorm';
 import { EngineerEntity } from './models';
+import moment from 'moment';
 import argon2 = require('argon2');
 import crypto = require('crypto');
+import qs = require('querystring');
+
+const generateSecret = (): string => {
+   // it is still random 16 bytes like uuid v4 but much shorter in a utf view
+   return crypto.randomBytes(16).toString('base64url');
+};
 
 export const AUTH_HEADER = 'authorization';
 const BASIC_AUTH_PREFIX = 'Basic';
+const COOKIE_HEADER = 'cookie';
+
+const ARGON_DELIMITER = '$';
+const COOKIE_DELIMITER = '@';
+
+const authCookieKey = `__Secure-${generateSecret()}`;
+const cookieSalt = generateSecret();
+const cookieArgonOptions = {salt: Buffer.from(cookieSalt, 'base64url')};
 
 @Injectable()
 export class BasicAuthGuard implements CanActivate
 {
+   public static readonly _argonPrefix$ = new Promise<string>(async (resolve) => {
+      const hash = await argon2.hash(authCookieKey, cookieArgonOptions);
+      const [empty, libName, version, options, _part1, _part2] = hash.split(ARGON_DELIMITER);
+      const prefix = [empty, libName, version, options].join(ARGON_DELIMITER);
+      resolve(prefix);
+   });
+
+   private static readonly _sessions = new Map<string, Date>();
+
    constructor(
       @InjectRepository(EngineerEntity)
       private readonly _engineerEntityRepository: Repository<EngineerEntity>,
    ) {}
 
    public async canActivate(ctx: ExecutionContext): Promise<boolean> {
-      const req = ctx.switchToHttp().getRequest<FastifyRequest>();
+      try {
+         const req = ctx.switchToHttp().getRequest<FastifyRequest>();
 
-      const authHeader = req.headers[AUTH_HEADER];
-      const {login, password} = this.parseAuthHeader(authHeader);
+         const allCookies = req.headers[COOKIE_HEADER];
+         if (typeof allCookies !== 'string') {
+            throw new Error();
+         }
 
-      return this.checkEngineerAuthorization(login, password);
+         const parsed = qs.parse(allCookies, '; ');
+         const authCookie = parsed[authCookieKey];
+         if (typeof authCookie !== 'string') {
+            throw new Error();
+         }
+
+         const argonPrefix = await BasicAuthGuard._argonPrefix$;
+         const [payload, safeSignature] = authCookie.split(COOKIE_DELIMITER);
+         const signature = Buffer.from(safeSignature, 'base64url').toString('utf-8');
+         const hash = [argonPrefix, signature].join(ARGON_DELIMITER);
+
+         const verified = await argon2.verify(hash, payload, cookieArgonOptions);
+         if (verified !== true) {
+            throw new Error();
+         }
+
+         const sessionExpires = BasicAuthGuard._sessions.get(payload);
+         if (sessionExpires === undefined) {
+            throw new Error();
+         }
+
+         if (new Date() >= sessionExpires) {
+            this.clearSessions();
+            throw new Error();
+         }
+
+         return true;
+      }
+      catch {
+         throw new UnauthorizedException('Неверный логин и/или пароль');
+      }
    }
 
-   public async checkEngineerAuthorization(login: string, password: string): Promise<boolean>
+   public async login(login: string, password: string): Promise<string>
+   {
+      await this.sleep();
+
+      try {
+         const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
+         if (engineer === undefined) {
+            throw new Error();
+         }
+
+         const isVerified = await argon2.verify(engineer.phash, password, {salt: Buffer.from(engineer.salt)});
+         if (isVerified !== true) {
+            throw new Error();
+         }
+
+         const sessionCookie = generateSecret();
+         const hash = await argon2.hash(sessionCookie, cookieArgonOptions);
+         const [_empty, _libName, _version, _options, part1, part2] = hash.split(ARGON_DELIMITER);
+         const signature = [part1, part2].join(ARGON_DELIMITER);
+         const safeSignature = Buffer.from(signature, 'utf-8').toString('base64url');
+         const signed = [sessionCookie, safeSignature].join(COOKIE_DELIMITER);
+
+         const now = moment();
+         const expires = now.add(8, 'hours').toDate();
+
+         const cookieVal = `${authCookieKey}=${signed}; Expires=${expires.toUTCString()}; SameSite; Secure; HttpOnly`;
+
+         BasicAuthGuard._sessions.set(sessionCookie, expires);
+
+         return cookieVal;
+
+      } catch {
+         throw new UnauthorizedException('Неверный логин и/или пароль');
+      }
+   }
+
+   protected async checkEngineerAuthorization(login: string, password: string): Promise<boolean>
    {
       await this.sleep();
 
@@ -48,7 +141,7 @@ export class BasicAuthGuard implements CanActivate
       }
    }
 
-   private parseAuthHeader(authHeader: string | unknown): {login: string, password: string}
+   protected parseAuthHeader(authHeader: string | unknown): {login: string, password: string}
    {
       if (typeof authHeader !== 'string') {
          throw new UnauthorizedException('Не передан авторизационный заголовок');
@@ -77,7 +170,17 @@ export class BasicAuthGuard implements CanActivate
    }
 
    private async sleep(): Promise<void> {
-      const sleepPeriod = crypto.randomInt(40, 60);
+      const sleepPeriod = crypto.randomInt(100, 150);
       return new Promise((r) => setTimeout(r, sleepPeriod));
+   }
+
+   private clearSessions(): void {
+      const now = new Date();
+      const sessions = BasicAuthGuard._sessions;
+      sessions.forEach((expires, sessionKey) => {
+         if (now >= expires) {
+            sessions.delete(sessionKey);
+         }
+      });
    }
 }

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
+import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query, Res } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, FindManyOptions, FindOperator, Like, Repository } from 'typeorm';
 import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema, LightAbonentList, FlatLightAbonentList } from './models';
@@ -21,10 +22,11 @@ export class TelecomControllerV2
    @HttpCode(HttpStatus.OK)
    @ApiOperation({summary: 'Авторизация инженера компании'})
    @ApiOkResponse({type: Success})
-   public async login(@Body() body: LoginBodyDto): Promise<Success>
+   public async login(@Body() body: LoginBodyDto, @Res() res: FastifyReply): Promise<void>
    {
-      const success = await this._authService.checkEngineerAuthorization(body.login, body.password);
-      return {success};
+      const cookieVal = await this._authService.login(body.login, body.password);
+      res.header('Set-Cookie', cookieVal);
+      res.send({success: true});
    }
 
 
