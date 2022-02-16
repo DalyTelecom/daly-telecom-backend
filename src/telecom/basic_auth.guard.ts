@@ -77,7 +77,7 @@ export class BasicAuthGuard implements CanActivate
    }
 
    private async sleep(): Promise<void> {
-      const sleepPeriod = crypto.randomInt(400, 600);
+      const sleepPeriod = crypto.randomInt(40, 60);
       return new Promise((r) => setTimeout(r, sleepPeriod));
    }
 }
