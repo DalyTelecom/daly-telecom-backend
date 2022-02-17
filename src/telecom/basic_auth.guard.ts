@@ -8,7 +8,7 @@ import argon2 = require('argon2');
 import crypto = require('crypto');
 import qs = require('querystring');
 
-const sessionExpiresException = new HttpException('Время сессии истекло', 419);
+const sessionExpiresException = new HttpException('Время сессии истекло. Повторно войдите в систему.', 419);
 const unauthorizedException = new UnauthorizedException('Неверный логин и/или пароль');
 
 const generateSecret = (): string => {
