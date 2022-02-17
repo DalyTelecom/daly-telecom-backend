@@ -1,10 +1,11 @@
 import type { FastifyReply } from 'fastify';
-import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query, Res, Headers } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query, Res, Headers, UseFilters } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, FindManyOptions, FindOperator, Like, Repository } from 'typeorm';
 import { AbonentBodyDto, Success, SUCCESS, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatLightAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema, LightAbonentList, FlatLightAbonentList } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiCookieAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
+import { HttpExceptionFilter } from './exception.filter';
 
 const apiCookieAuth = ApiCookieAuth();
 const successResponse = ApiOkResponse({type: Success});
@@ -14,6 +15,7 @@ const okStatus = HttpCode(HttpStatus.OK);
 
 
 @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true, forbidUnknownValues: true, transform: true}))
+@UseFilters(HttpExceptionFilter)
 @Controller('api/v2')
 @ApiTags('Операции с абонентами')
 export class TelecomControllerV2

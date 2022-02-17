@@ -231,4 +231,8 @@ export class BasicAuthGuard implements CanActivate
          }
       });
    }
+
+   public getClearAuthCookieH(): string {
+      return `${authCookieKey}; Expires=-1`;
+   }
 }
