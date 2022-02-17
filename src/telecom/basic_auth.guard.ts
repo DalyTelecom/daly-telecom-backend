@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, HttpException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { FastifyRequest } from 'fastify';
 import { Repository } from 'typeorm';
@@ -7,6 +7,9 @@ import moment from 'moment';
 import argon2 = require('argon2');
 import crypto = require('crypto');
 import qs = require('querystring');
+
+const sessionExpiresException = new HttpException('Время сессии истекло', 419);
+const unauthorizedException = new UnauthorizedException('Неверный логин и/или пароль');
 
 const generateSecret = (): string => {
    // it is still random 16 bytes like uuid v4 but much shorter in a utf view
@@ -34,7 +37,7 @@ export class BasicAuthGuard implements CanActivate
       resolve(prefix);
    });
 
-   private static readonly _sessions = new Map<string, Date>();
+   private static readonly _sessions = new Map<string, number>();
 
    constructor(
       @InjectRepository(EngineerEntity)
@@ -47,13 +50,13 @@ export class BasicAuthGuard implements CanActivate
 
          const allCookies = req.headers[COOKIE_HEADER];
          if (typeof allCookies !== 'string') {
-            throw new Error();
+            throw unauthorizedException;
          }
 
          const parsed = qs.parse(allCookies, '; ');
          const authCookie = parsed[authCookieKey];
          if (typeof authCookie !== 'string') {
-            throw new Error();
+            throw unauthorizedException;
          }
 
          const argonPrefix = await BasicAuthGuard._argonPrefix$;
@@ -63,23 +66,26 @@ export class BasicAuthGuard implements CanActivate
 
          const verified = await argon2.verify(hash, payload, cookieArgonOptions);
          if (verified !== true) {
-            throw new Error();
+            throw unauthorizedException;
          }
 
          const sessionExpires = BasicAuthGuard._sessions.get(payload);
          if (sessionExpires === undefined) {
-            throw new Error();
+            throw unauthorizedException;
          }
 
-         if (new Date() >= sessionExpires) {
+         if (new Date().valueOf() >= sessionExpires) {
+            BasicAuthGuard._sessions.delete(payload);
             this.clearSessions();
-            throw new Error();
+            throw sessionExpiresException;
          }
 
          return true;
       }
-      catch {
-         throw new UnauthorizedException('Неверный логин и/или пароль');
+      catch (err) {
+         throw err instanceof HttpException
+            ? err
+            : unauthorizedException;
       }
    }
 
@@ -90,12 +96,12 @@ export class BasicAuthGuard implements CanActivate
       try {
          const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
          if (engineer === undefined) {
-            throw new Error();
+            throw unauthorizedException;
          }
 
          const isVerified = await argon2.verify(engineer.phash, password, {salt: Buffer.from(engineer.salt)});
          if (isVerified !== true) {
-            throw new Error();
+            throw unauthorizedException;
          }
 
          const sessionCookie = generateSecret();
@@ -110,12 +116,54 @@ export class BasicAuthGuard implements CanActivate
 
          const cookieVal = `${authCookieKey}=${signed}; Expires=${expires.toUTCString()}; SameSite; Secure; HttpOnly`;
 
-         BasicAuthGuard._sessions.set(sessionCookie, expires);
+         BasicAuthGuard._sessions.set(sessionCookie, expires.valueOf());
 
          return cookieVal;
 
       } catch {
-         throw new UnauthorizedException('Неверный логин и/или пароль');
+         throw unauthorizedException;
+      }
+   }
+
+   public async logout(cookieHeader?: string | null): Promise<void>{
+      try {
+         if (typeof cookieHeader !== 'string') {
+            throw unauthorizedException;
+         }
+
+         const parsed = qs.parse(cookieHeader, '; ');
+         const authCookie = parsed[authCookieKey];
+         if (typeof authCookie !== 'string') {
+            throw unauthorizedException;
+         }
+
+         const argonPrefix = await BasicAuthGuard._argonPrefix$;
+         const [payload, safeSignature] = authCookie.split(COOKIE_DELIMITER);
+         const signature = Buffer.from(safeSignature, 'base64url').toString('utf-8');
+         const hash = [argonPrefix, signature].join(ARGON_DELIMITER);
+
+         const verified = await argon2.verify(hash, payload, cookieArgonOptions);
+         if (verified !== true) {
+            throw unauthorizedException;
+         }
+
+         const sessionExpires = BasicAuthGuard._sessions.get(payload);
+         if (sessionExpires === undefined) {
+            throw unauthorizedException;
+         }
+
+         if (new Date().valueOf() >= sessionExpires) {
+            BasicAuthGuard._sessions.delete(payload);
+            this.clearSessions();
+            throw sessionExpiresException;
+         }
+
+         BasicAuthGuard._sessions.delete(payload);
+      }
+      catch (err) {
+         throw err instanceof HttpException
+            ? err
+            : unauthorizedException;
       }
    }
 
@@ -137,7 +185,7 @@ export class BasicAuthGuard implements CanActivate
          return true;
 
       } catch {
-         throw new UnauthorizedException('Неверный логин и/или пароль');
+         throw unauthorizedException;
       }
    }
 
@@ -175,10 +223,10 @@ export class BasicAuthGuard implements CanActivate
    }
 
    private clearSessions(): void {
-      const now = new Date();
+      const veryLongTimeAgo = moment().subtract(5, 'days').valueOf();
       const sessions = BasicAuthGuard._sessions;
       sessions.forEach((expires, sessionKey) => {
-         if (now >= expires) {
+         if (veryLongTimeAgo >= expires) {
             sessions.delete(sessionKey);
          }
       });

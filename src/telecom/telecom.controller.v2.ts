@@ -1,10 +1,16 @@
 import type { FastifyReply } from 'fastify';
-import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query, Res, Headers } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, FindManyOptions, FindOperator, Like, Repository } from 'typeorm';
-import { AbonentBodyDto, Success, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema, LightAbonentList, FlatLightAbonentList } from './models';
-import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiBasicAuth } from '@nestjs/swagger';
+import { AbonentBodyDto, Success, SUCCESS, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatLightAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema, LightAbonentList, FlatLightAbonentList } from './models';
+import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiCookieAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
+
+const apiCookieAuth = ApiCookieAuth();
+const successResponse = ApiOkResponse({type: Success});
+const abonentIdParam = ApiParam({name: 'abonentId', type: 'integer'});
+const authGuard = UseGuards(BasicAuthGuard);
+const okStatus = HttpCode(HttpStatus.OK);
 
 
 @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true, forbidUnknownValues: true, transform: true}))
@@ -19,31 +25,41 @@ export class TelecomControllerV2
    ) {}
 
    @Post('login')
-   @HttpCode(HttpStatus.OK)
+   @okStatus
    @ApiOperation({summary: 'Авторизация инженера компании'})
-   @ApiOkResponse({type: Success})
+   @successResponse
    public async login(@Body() body: LoginBodyDto, @Res() res: FastifyReply): Promise<void>
    {
       const cookieVal = await this._authService.login(body.login, body.password);
       res.header('Set-Cookie', cookieVal);
-      res.send({success: true});
+      res.send(SUCCESS);
+   }
+
+   @Post('logout')
+   @okStatus
+   @ApiOperation({summary: 'Выход из системы'})
+   @successResponse
+   public async logout(@Headers('cookie') cookieHeader?: string): Promise<Success>
+   {
+      await this._authService.logout(cookieHeader);
+      return SUCCESS;
    }
 
 
    @Get('check-auth')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
-   @ApiOperation({summary: 'Проверка авторизации'})
-   @ApiOkResponse({type: Success})
+   @authGuard
+   @apiCookieAuth
+   @ApiOperation({summary: 'Проверка актуальности сессии'})
+   @successResponse
    public checkAuth(): Success
    {
-      return {success: true};
+      return SUCCESS;
    }
 
 
    @Get('abonents')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
+   @authGuard
+   @apiCookieAuth
    @ApiOperation({summary: 'Получение списка абонентов'})
    @ApiOkResponse({type: AbonentList})
    public async getAbonentsList(@Query() query: PaginationQuery): Promise<AbonentList>
@@ -56,9 +72,9 @@ export class TelecomControllerV2
    }
 
    @Get('abonents/:abonentId')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
-   @ApiParam({name: 'abonentId', type: 'integer'})
+   @authGuard
+   @apiCookieAuth
+   @abonentIdParam
    @ApiOperation({summary: 'Получение данных абонента по идентификатору'})
    @ApiOkResponse({type: AbonentEntity})
    public async getAbonent(@Param('abonentId') abonentId: string): Promise<AbonentEntity>
@@ -77,8 +93,8 @@ export class TelecomControllerV2
    }
 
    @Get('light-abonents')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
+   @authGuard
+   @apiCookieAuth
    @ApiOperation({summary: 'Получение списка абонентов (сокращённая информация для отображения списка)'})
    @ApiOkResponse({type: AbonentList})
    public async getLightAbonentsList(@Query() query: PaginationQuery): Promise<LightAbonentList>
@@ -94,10 +110,10 @@ export class TelecomControllerV2
    }
 
    @Get('light-flat-abonents')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
+   @authGuard
+   @apiCookieAuth
    @ApiOperation({summary: 'Получение списка абонентов (сокращённая информация для отображения списка; компактное представление)'})
-   @ApiOkResponse(FlatAbonentListResponseSchema)
+   @ApiOkResponse(FlatLightAbonentListResponseSchema)
    public async getLightFlatAbonentsList(@Query() query: PaginationQuery): Promise<FlatLightAbonentList>
    {
       const list = await this.getLightAbonentsList(query);
@@ -105,8 +121,8 @@ export class TelecomControllerV2
    }
 
    @Get('flat-abonents')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
+   @authGuard
+   @apiCookieAuth
    @ApiOperation({summary: 'Получение списка абонентов (компактное представление)'})
    @ApiOkResponse(FlatAbonentListResponseSchema)
    public async getFlatAbonentsList(@Query() query: PaginationQuery): Promise<FlatAbonentList>
@@ -116,9 +132,9 @@ export class TelecomControllerV2
    }
 
    @Get('flat-abonents/:abonentId')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
-   @ApiParam({name: 'abonentId', type: 'integer'})
+   @authGuard
+   @apiCookieAuth
+   @abonentIdParam
    @ApiOperation({summary: 'Получение данных абонента по идентификатору (компактное представление)'})
    @ApiOkResponse(FlatAbonentResponseSchema)
    public async getFlatAbonent(@Param('abonentId') abonentId: string): Promise<FlatAbonent>
@@ -128,9 +144,9 @@ export class TelecomControllerV2
    }
 
    @Post('abonents')
-   @HttpCode(HttpStatus.OK)
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
+   @okStatus
+   @authGuard
+   @apiCookieAuth
    @ApiOperation({summary: 'Создание нового абонента'})
    @ApiOkResponse({type: CreatedAbonentID})
    public async addNewAbonent(@Body() body: AbonentBodyDto): Promise<CreatedAbonentID>
@@ -141,11 +157,11 @@ export class TelecomControllerV2
    }
 
    @Put('abonents/:abonentId')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
-   @ApiParam({name: 'abonentId', type: 'integer'})
+   @authGuard
+   @apiCookieAuth
+   @abonentIdParam
    @ApiOperation({summary: 'Обновление данных абонента'})
-   @ApiOkResponse({type: Success})
+   @successResponse
    public async updateAbonent(@Param('abonentId') abonentId: string, @Body() body: AbonentBodyDto): Promise<Success>
    {
       const abonentIdNum = Number(abonentId);
@@ -165,15 +181,15 @@ export class TelecomControllerV2
          throw new NotFoundException();
       }
 
-      return {success: true};
+      return SUCCESS;
    }
 
    @Delete('abonents/:abonentId')
-   @UseGuards(BasicAuthGuard)
-   @ApiBasicAuth()
-   @ApiParam({name: 'abonentId', type: 'integer'})
+   @authGuard
+   @apiCookieAuth
+   @abonentIdParam
    @ApiOperation({summary: 'Удаление абонента'})
-   @ApiOkResponse({type: Success})
+   @successResponse
    public async deleteAbonent(@Param('abonentId') abonentId: string): Promise<Success>
    {
       const abonentIdNum = Number(abonentId);
@@ -187,7 +203,7 @@ export class TelecomControllerV2
          throw new NotFoundException();
       }
 
-      return {success: true};
+      return SUCCESS;
    }
 
 

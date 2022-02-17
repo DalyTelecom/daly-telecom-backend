@@ -18,7 +18,7 @@ async function bootstrap(): Promise<NestFastifyApplication>
       .setTitle(name)
       .setDescription(description)
       .setVersion(version)
-      .addBasicAuth()
+      .addCookieAuth()
       .build();
    const document = SwaggerModule.createDocument(app, swaggerConfig);
    SwaggerModule.setup('swagger', app, document);

@@ -25,4 +25,6 @@ const FlatAbonentListExample = new FlatAbonentList({abonents: [DummyAbonent, Dum
 
 export const FlatAbonentListResponseSchema: ApiResponseOptions = {schema: {example: FlatAbonentListExample}};
 
-export const FlatLightAbonentListExample = new FlatLightAbonentList({abonents: [DummyAbonent, DummyAbonent], total: 7, totalPages: 4, pageSize: 2, pageNumber: 1});
+const FlatLightAbonentListExample = new FlatLightAbonentList({abonents: [DummyAbonent, DummyAbonent], total: 7, totalPages: 4, pageSize: 2, pageNumber: 1});
+
+export const FlatLightAbonentListResponseSchema: ApiResponseOptions = {schema: {example: FlatLightAbonentListExample}};
