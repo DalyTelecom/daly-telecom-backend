@@ -233,6 +233,6 @@ export class BasicAuthGuard implements CanActivate
    }
 
    public getClearAuthCookieH(): string {
-      return `${authCookieKey}; Expires=-1`;
+      return `${authCookieKey}; Max-Age=-1`;
    }
 }
