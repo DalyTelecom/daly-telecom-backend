@@ -41,10 +41,11 @@ export class TelecomControllerV2
    @okStatus
    @ApiOperation({summary: 'Выход из системы'})
    @successResponse
-   public async logout(@Headers('cookie') cookieHeader?: string): Promise<Success>
+   public async logout(@Res() res: FastifyReply, @Headers('cookie') cookieHeader?: string): Promise<void>
    {
       await this._authService.logout(cookieHeader);
-      return SUCCESS;
+      res.header('Set-Cookie', this._authService.getClearAuthCookieH());
+      res.send(SUCCESS);
    }
 
 
