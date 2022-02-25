@@ -103,10 +103,8 @@ export class TelecomControllerV2
    public async getLightAbonentsList(@Query() query: PaginationQuery): Promise<LightAbonentList>
    {
       const condition = this._generatFindCondition(query);
-      const [abonents, total] = await this._abonentRepository.findAndCount({
-         ...condition,
-         select: ['id', 'name', 'phone', 'address'],
-      });
+      condition.select = ['id', 'name', 'phone', 'address'];
+      const [abonents, total] = await this._abonentRepository.findAndCount(condition);
       const totalPages = Math.ceil(total / query.pageSize);
       const data = { abonents, total, totalPages, pageSize: query.pageSize, pageNumber: query.pageNumber };
       return data;
