@@ -1,8 +1,9 @@
 import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AbonentBodyDto, Success, CreatedAbonentID, UserList, AbonentEntity } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam } from '@nestjs/swagger';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 
 @UsePipes(new ValidationPipe())
@@ -37,7 +38,7 @@ export class TelecomControllerV1
       }
 
       const user = await this._userRepository.findOne({ where: {id: userIdNum}});
-      if (user === undefined) {
+      if (user === null) {
          throw new NotFoundException();
       }
 
@@ -66,7 +67,7 @@ export class TelecomControllerV1
          throw new NotFoundException();
       }
 
-      const updateObject: DeepPartial<AbonentEntity> = {};
+      const updateObject: QueryDeepPartialEntity<AbonentEntity> = {};
       Object.keys(body).forEach((key) => {
          // @ts-ignore
          updateObject[key] = body[key] || null;

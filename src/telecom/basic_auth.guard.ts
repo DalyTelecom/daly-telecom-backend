@@ -95,7 +95,7 @@ export class BasicAuthGuard implements CanActivate
 
       try {
          const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
-         if (engineer === undefined) {
+         if (engineer === null) {
             throw unauthorizedException;
          }
 
@@ -173,7 +173,7 @@ export class BasicAuthGuard implements CanActivate
 
       try {
          const engineer = await this._engineerEntityRepository.findOne({ where: {login}});
-         if (engineer === undefined) {
+         if (engineer === null) {
             throw new Error();
          }
 

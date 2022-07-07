@@ -1,11 +1,12 @@
 import type { FastifyReply } from 'fastify';
 import { Body, Controller, Get, Post, Put, Delete, Param, HttpCode, HttpStatus, NotFoundException, UsePipes, ValidationPipe, UseGuards, Query, Res, Headers, UseFilters } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, FindManyOptions, FindOperator, Like, Repository } from 'typeorm';
+import { FindManyOptions, FindOperator, Like, Repository } from 'typeorm';
 import { AbonentBodyDto, Success, SUCCESS, CreatedAbonentID, AbonentList, AbonentEntity, LoginBodyDto, PaginationQuery, FlatAbonentList, FlatAbonentListResponseSchema, FlatLightAbonentListResponseSchema, FlatAbonent, FlatAbonentResponseSchema, LightAbonentList, FlatLightAbonentList } from './models';
 import { ApiOperation, ApiTags, ApiOkResponse, ApiParam, ApiCookieAuth } from '@nestjs/swagger';
 import { BasicAuthGuard } from './basic_auth.guard';
 import { HttpExceptionFilter } from './exception.filter';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 const apiCookieAuth = ApiCookieAuth();
 const successResponse = ApiOkResponse({type: Success});
@@ -88,7 +89,7 @@ export class TelecomControllerV2
       }
 
       const abonent = await this._abonentRepository.findOne({ where: {id: abonentIdNum}});
-      if (abonent === undefined) {
+      if (abonent === null) {
          throw new NotFoundException();
       }
 
@@ -170,7 +171,7 @@ export class TelecomControllerV2
          throw new NotFoundException();
       }
 
-      const updateObject: DeepPartial<AbonentEntity> = {};
+      const updateObject: QueryDeepPartialEntity<AbonentEntity> = {};
       Object.keys(body).forEach((key) => {
          // @ts-ignore
          updateObject[key] = body[key] || null;
