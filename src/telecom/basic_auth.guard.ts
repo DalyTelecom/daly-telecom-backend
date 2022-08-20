@@ -30,7 +30,7 @@ const cookieArgonOptions = {salt: Buffer.from(cookieSalt, 'base64url')};
 @Injectable()
 export class BasicAuthGuard implements CanActivate
 {
-   public static readonly _argonPrefix$ = new Promise<string>(async (resolve) => {
+   private static readonly _argonPrefix$ = new Promise<string>(async (resolve) => {
       const result = await argon2.hash(authCookieKey, cookieArgonOptions);
       const [empty, libName, version, options, _salt, _hash] = result.split(ARGON_DELIMITER);
       const prefix = [empty, libName, version, options].join(ARGON_DELIMITER);
@@ -60,22 +60,22 @@ export class BasicAuthGuard implements CanActivate
          }
 
          const argonPrefix = await BasicAuthGuard._argonPrefix$;
-         const [payload, safeSignature] = authCookie.split(COOKIE_DELIMITER);
+         const [cookieKey, safeSignature] = authCookie.split(COOKIE_DELIMITER);
          const signature = Buffer.from(safeSignature, 'base64url').toString('utf-8');
          const hash = [argonPrefix, signature].join(ARGON_DELIMITER);
 
-         const verified = await argon2.verify(hash, payload, cookieArgonOptions);
+         const verified = await argon2.verify(hash, cookieKey, cookieArgonOptions);
          if (verified !== true) {
             throw unauthorizedException;
          }
 
-         const sessionExpires = BasicAuthGuard._sessions.get(payload);
+         const sessionExpires = BasicAuthGuard._sessions.get(cookieKey);
          if (sessionExpires === undefined) {
             throw unauthorizedException;
          }
 
          if (new Date().valueOf() >= sessionExpires) {
-            BasicAuthGuard._sessions.delete(payload);
+            BasicAuthGuard._sessions.delete(cookieKey);
             this.clearSessions();
             throw sessionExpiresException;
          }
