@@ -31,8 +31,8 @@ const cookieArgonOptions = {salt: Buffer.from(cookieSalt, 'base64url')};
 export class BasicAuthGuard implements CanActivate
 {
    public static readonly _argonPrefix$ = new Promise<string>(async (resolve) => {
-      const hash = await argon2.hash(authCookieKey, cookieArgonOptions);
-      const [empty, libName, version, options, _part1, _part2] = hash.split(ARGON_DELIMITER);
+      const result = await argon2.hash(authCookieKey, cookieArgonOptions);
+      const [empty, libName, version, options, _salt, _hash] = result.split(ARGON_DELIMITER);
       const prefix = [empty, libName, version, options].join(ARGON_DELIMITER);
       resolve(prefix);
    });
@@ -105,10 +105,9 @@ export class BasicAuthGuard implements CanActivate
          }
 
          const sessionCookie = generateSecret();
-         const hash = await argon2.hash(sessionCookie, cookieArgonOptions);
-         const [_empty, _libName, _version, _options, part1, part2] = hash.split(ARGON_DELIMITER);
-         const signature = [part1, part2].join(ARGON_DELIMITER);
-         const safeSignature = Buffer.from(signature, 'utf-8').toString('base64url');
+         const result = await argon2.hash(sessionCookie, cookieArgonOptions);
+         const [_empty, _libName, _version, _options, _salt, hash] = result.split(ARGON_DELIMITER);
+         const safeSignature = Buffer.from(hash, 'utf-8').toString('base64url');
          const signed = [sessionCookie, safeSignature].join(COOKIE_DELIMITER);
 
          const now = moment();
